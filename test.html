@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoClicker Test</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font-family: Arial, sans-serif;
+      color: #f5f5f5;
+      background: #1e1e1e;
+    }
+    .panel {
+      width: min(440px, calc(100% - 32px));
+      padding: 32px;
+      text-align: center;
+      background: #2a2a2a;
+      border: 1px solid #444;
+      border-radius: 16px;
+      box-shadow: 0 12px 40px #0006;
+    }
+    h1 { margin: 0 0 12px; }
+    .count {
+      margin: 20px 0;
+      font-size: 52px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    button {
+      min-width: 190px;
+      padding: 14px 22px;
+      border: 0;
+      border-radius: 9px;
+      color: #fff;
+      background: #2878d0;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:disabled {
+      cursor: not-allowed;
+      opacity: .45;
+    }
+    .hint { color: #aaa; font-size: 13px; margin-top: 18px; }
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 20px;
+      background: #0009;
+    }
+    .overlay.visible { display: grid; }
+    .modal {
+      width: min(360px, 100%);
+      padding: 28px;
+      text-align: center;
+      background: #303030;
+      border: 1px solid #555;
+      border-radius: 14px;
+      box-shadow: 0 16px 50px #0009;
+    }
+    .modal h2 { margin-top: 0; }
+    .modal p { color: #ccc; line-height: 1.5; }
+    #continueButton { background: #218838; }
+  </style>
+</head>
+<body>
+  <main class="panel">
+    <h1>AutoClicker Test</h1>
+    <div>Количество кликов</div>
+    <div class="count" id="counter">0</div>
+    <button id="clickButton" type="button">Нажми меня</button>
+    <div class="hint">Основная кнопка блокируется каждые 20 секунд.</div>
+  </main>
+
+  <div class="overlay" id="overlay" role="dialog" aria-modal="true"
+       aria-labelledby="modalTitle">
+    <section class="modal">
+      <h2 id="modalTitle">Пауза</h2>
+      <p>Основная кнопка временно заблокирована. Нажми «Продолжить», чтобы возобновить тест.</p>
+      <button id="continueButton" type="button">Продолжить</button>
+    </section>
+  </div>
+
+  <script>
+    const counter = document.getElementById("counter");
+    const clickButton = document.getElementById("clickButton");
+    const overlay = document.getElementById("overlay");
+    const continueButton = document.getElementById("continueButton");
+
+    let clicks = 0;
+    let pauseTimer;
+
+    clickButton.addEventListener("click", () => {
+      if (clickButton.disabled) return;
+      clicks += 1;
+      counter.textContent = clicks;
+    });
+
+    function pauseTest() {
+      clickButton.disabled = true;
+      overlay.classList.add("visible");
+      continueButton.focus();
+    }
+
+    function resumeTest() {
+      overlay.classList.remove("visible");
+      clickButton.disabled = false;
+      clickButton.focus();
+      clearTimeout(pauseTimer);
+      pauseTimer = setTimeout(pauseTest, 20_000);
+    }
+
+    continueButton.addEventListener("click", resumeTest);
+
+    // Первый переход на паузу — через 20 секунд после загрузки страницы.
+    pauseTimer = setTimeout(pauseTest, 20_000);
+  </script>
+</body>
+</html>
