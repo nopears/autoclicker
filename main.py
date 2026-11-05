@@ -7,8 +7,30 @@ from pynput import keyboard
 from clicker import AutoClicker
 
 
-HOTKEY = "<f8>"
-HOTKEY_NAME = "F8"
+CAPTURE_HOTKEY = "<f8>"
+CAPTURE_NAME = "F8"
+START_HOTKEY = "<f6>"
+STOP_HOTKEY = "<f7>"
+
+
+class GlobalHotkeys:
+    def __init__(self):
+        self.bindings = {}
+        self.listener = None
+
+    def add(self, key, callback):
+        self.bindings[key] = callback
+
+    def start(self):
+        self.listener = keyboard.GlobalHotKeys(dict(self.bindings))
+        self.listener.start()
+        self.listener.wait()
+        return getattr(self.listener, "IS_TRUSTED", True)
+
+    def stop(self):
+        if self.listener is not None:
+            self.listener.stop()
+            self.listener = None
 
 
 class CoordinatePicker:
@@ -18,7 +40,6 @@ class CoordinatePicker:
         self.frames = []
         self.entries = []
         self.active = 0
-        self.listener = None
 
     def add(self, frame, x_entry, y_entry):
         index = len(self.frames)
@@ -26,17 +47,6 @@ class CoordinatePicker:
         self.entries.append((x_entry, y_entry))
         self._bind(frame, index)
         self._mark()
-
-    def start(self):
-        self.listener = keyboard.GlobalHotKeys({HOTKEY: self.capture})
-        self.listener.start()
-        self.listener.wait()
-        return getattr(self.listener, "IS_TRUSTED", True)
-
-    def stop(self):
-        if self.listener is not None:
-            self.listener.stop()
-            self.listener = None
 
     def select(self, index):
         self.active = index
@@ -64,16 +74,17 @@ class CoordinatePicker:
 
     def _mark(self):
         for index, frame in enumerate(self.frames):
-            marker = f"  ·  {HOTKEY_NAME}" if index == self.active else ""
+            marker = f"  ·  {CAPTURE_NAME}" if index == self.active else ""
             frame.config(text=f"Действие {index + 1}{marker}")
 
 
 root = tk.Tk()
 root.title("AutoClicker")
-root.geometry("420x470")
+root.geometry("420x490")
 root.resizable(False, False)
 
 clicker = AutoClicker(root)
+hotkeys = GlobalHotkeys()
 
 
 def log(message):
@@ -82,6 +93,7 @@ def log(message):
     log_text.see(tk.END)
 
 
+clicker.on_log = log
 picker = CoordinatePicker(root, log)
 
 
@@ -134,13 +146,19 @@ def stop():
 
 
 def on_close():
-    picker.stop()
+    hotkeys.stop()
     clicker.stop()
     root.destroy()
 
 
 tk.Label(root, text="AutoClicker", font=("Arial", 20, "bold")).pack(pady=10)
-tk.Label(root, text="F8 — координаты под курсором", fg="#555555").pack()
+tk.Label(
+    root,
+    text="F6 — запуск    F7 — остановка    F8 — координаты под курсором",
+    fg="#555555",
+    wraplength=390,
+    justify="center",
+).pack()
 
 interval1_entry, x1_entry, y1_entry = add_action(1)
 interval2_entry, x2_entry, y2_entry = add_action(2)
@@ -150,7 +168,7 @@ buttons.pack(pady=10)
 
 tk.Button(
     buttons,
-    text="ЗАПУСТИТЬ",
+    text="ЗАПУСТИТЬ\nF6",
     command=start,
     bg="#4CAF50",
     fg="#202020",
@@ -161,7 +179,7 @@ tk.Button(
 
 tk.Button(
     buttons,
-    text="ОСТАНОВИТЬ",
+    text="ОСТАНОВИТЬ\nF7",
     command=stop,
     bg="#E53935",
     fg="#202020",
@@ -176,16 +194,20 @@ status_label.pack(pady=5)
 log_text = tk.Text(root, height=5, width=48)
 log_text.pack(padx=10, pady=5)
 
+hotkeys.add(START_HOTKEY, lambda: root.after(0, start))
+hotkeys.add(STOP_HOTKEY, lambda: root.after(0, stop))
+hotkeys.add(CAPTURE_HOTKEY, picker.capture)
+
 try:
-    hotkey_trusted = picker.start()
+    hotkey_trusted = hotkeys.start()
 except Exception as error:
-    messagebox.showerror("Хоткей", f"Не удалось включить {HOTKEY_NAME}: {error}")
+    messagebox.showerror("Хоткей", f"Не удалось включить хоткеи: {error}")
     hotkey_trusted = False
 
 if not hotkey_trusted:
     messagebox.showwarning(
         "Хоткей",
-        "Разрешите доступ для Python в разделе «Универсальный доступ», иначе F8 не сработает.",
+        "Разрешите доступ для Python в разделе «Универсальный доступ», иначе хоткеи не сработают.",
     )
 
 root.protocol("WM_DELETE_WINDOW", on_close)
