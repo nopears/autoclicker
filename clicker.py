@@ -14,14 +14,14 @@ class AutoClicker:
         if self.on_log:
             self.on_log(message)
 
-    def start(self, interval1, x1, y1, interval2, x2, y2):
-        if self.running:
+    def start(self, actions):
+        if self.running or not actions:
             return
 
         self.running = True
 
-        self.schedule_click(interval1, x1, y1, "Действие 1")
-        self.schedule_click(interval2, x2, y2, "Действие 2")
+        for interval, x, y, name in actions:
+            self.schedule_click(interval, x, y, name)
 
         self.log("Автокликер запущен")
 

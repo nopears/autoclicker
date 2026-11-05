@@ -80,7 +80,7 @@ class CoordinatePicker:
 
 root = tk.Tk()
 root.title("AutoClicker")
-root.geometry("420x490")
+root.geometry("420x900")
 root.resizable(False, False)
 
 clicker = AutoClicker(root)
@@ -95,6 +95,7 @@ def log(message):
 
 clicker.on_log = log
 picker = CoordinatePicker(root, log)
+actions = []
 
 
 def add_action(number):
@@ -116,29 +117,40 @@ def add_action(number):
     y_entry.grid(row=2, column=1, padx=5)
 
     picker.add(frame, x_entry, y_entry)
-    return interval, x_entry, y_entry
+    actions.append((interval, x_entry, y_entry))
+
+
+def parse_action(number, interval_entry, x_entry, y_entry):
+    x_text = x_entry.get().strip()
+    y_text = y_entry.get().strip()
+    if not x_text or not y_text:
+        return None
+
+    interval = float(interval_entry.get().replace(",", "."))
+    x = int(x_text)
+    y = int(y_text)
+
+    if interval <= 0:
+        raise ValueError(f"Действие {number}: интервал должен быть больше нуля")
+
+    if x < 0 or y < 0:
+        raise ValueError(f"Действие {number}: координаты не могут быть отрицательными")
+
+    return interval, x, y, f"Действие {number}"
 
 
 def start():
     try:
-        interval1 = float(interval1_entry.get().replace(",", "."))
-        x1 = int(x1_entry.get())
-        y1 = int(y1_entry.get())
-
-        interval2 = float(interval2_entry.get().replace(",", "."))
-        x2 = int(x2_entry.get())
-        y2 = int(y2_entry.get())
-
-        if interval1 <= 0 or interval2 <= 0:
-            raise ValueError("Интервалы должны быть больше нуля")
-
-        if not all(map(lambda v: v >= 0, [x1, y1, x2, y2])):
-            raise ValueError("Координаты не могут быть отрицательными")
-
-        clicker.start(interval1, x1, y1, interval2, x2, y2)
-
+        planned = []
+        for number, entries in enumerate(actions, start=1):
+            action = parse_action(number, *entries)
+            if action is not None:
+                planned.append(action)
     except ValueError as error:
         messagebox.showerror("Ошибка ввода", str(error) or "Проверьте введённые данные")
+        return
+
+    clicker.start(planned)
 
 
 def stop():
@@ -160,8 +172,8 @@ tk.Label(
     justify="center",
 ).pack()
 
-interval1_entry, x1_entry, y1_entry = add_action(1)
-interval2_entry, x2_entry, y2_entry = add_action(2)
+for number in range(1, 5):
+    add_action(number)
 
 buttons = tk.Frame(root)
 buttons.pack(pady=10)
